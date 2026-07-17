@@ -35,19 +35,20 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('products')->delete();
-        DB::table('product_flat')->delete();
-        DB::table('product_attribute_values')->delete();
+        DB::table('product_customer_group_prices')->delete();
+        DB::table('product_cross_sells')->delete();
+        DB::table('product_up_sells')->delete();
+        DB::table('product_relations')->delete();
+        DB::table('product_super_attributes')->delete();
+        DB::table('product_price_indices')->delete();
+        DB::table('product_inventory_indices')->delete();
+        DB::table('product_inventories')->delete();
+        DB::table('product_images')->delete();
         DB::table('product_categories')->delete();
         DB::table('product_channels')->delete();
-        DB::table('product_images')->delete();
-        DB::table('product_inventories')->delete();
-        DB::table('product_inventory_indices')->delete();
-        DB::table('product_price_indices')->delete();
-        DB::table('product_customer_group_prices')->delete();
-        DB::table('product_relations')->delete();
-        DB::table('product_up_sells')->delete();
-        DB::table('product_cross_sells')->delete();
+        DB::table('product_attribute_values')->delete();
+        DB::table('product_flat')->delete();
+        DB::table('products')->delete();
 
         $now = Carbon::now();
 
@@ -72,6 +73,9 @@ class ProductSeeder extends Seeder
         $flatRecords = [];
         foreach ($this->products as $product) {
             $flatRecords[] = [
+                // Keep flat IDs aligned with product IDs so a variant's parent_id
+                // correctly references its configurable parent's product_flat row.
+                'id'                   => $product['product_id'],
                 'sku'                  => $product['sku'],
                 'type'                 => $product['type'],
                 'product_number'       => $product['product_number'] ?? null,
@@ -164,8 +168,37 @@ class ProductSeeder extends Seeder
         }
         DB::table('product_categories')->insert($categoryRecords);
 
-        // 6. Insert product price indices (for all 3 customer groups)
-        $customerGroupIds = [1, 2, 3];
+        // 6. Attach the existing public product images used by the storefront.
+        // ProductImage supports these paths directly and returns /uploads/products/* URLs.
+        $imageFiles = [
+            1 => '1.png',
+            2 => '2.jpg',
+            3 => '4.jpg',
+            4 => '6.jpg',
+            5 => '7.jpg',
+            6 => '8.jpg',
+            7 => '9.jpg',
+            8 => '11.jpg',
+            9 => '13.jpg',
+            10 => '15.jpg',
+            11 => '16.jpg',
+        ];
+
+        $imageRecords = [];
+        foreach ($imageFiles as $productId => $filename) {
+            if (file_exists(public_path("uploads/products/{$filename}"))) {
+                $imageRecords[] = [
+                    'product_id' => $productId,
+                    'type'       => 'image',
+                    'path'       => "public/uploads/products/{$filename}",
+                    'position'   => 1,
+                ];
+            }
+        }
+        DB::table('product_images')->insert($imageRecords);
+
+        // 7. Insert product price indices for every customer group in this installation.
+        $customerGroupIds = DB::table('customer_groups')->pluck('id');
         $priceIndexRecords = [];
         $indexId = 1;
 
@@ -174,16 +207,29 @@ class ProductSeeder extends Seeder
                 continue;
             }
 
+            $childPrices = collect($this->products)
+                ->where('parent_id', $product['product_id'])
+                ->pluck('price')
+                ->filter(fn ($price) => $price !== null);
+
+            $minPrice = $childPrices->isNotEmpty()
+                ? $childPrices->min()
+                : ($product['price'] ?? 0);
+
+            $maxPrice = $childPrices->isNotEmpty()
+                ? $childPrices->max()
+                : ($product['price'] ?? 0);
+
             foreach ($customerGroupIds as $groupId) {
                 $priceIndexRecords[] = [
                     'id'                => $indexId++,
                     'product_id'        => $product['product_id'],
                     'customer_group_id' => $groupId,
                     'channel_id'        => 1,
-                    'min_price'         => $product['price'] ?? 0,
-                    'regular_min_price' => $product['price'] ?? 0,
-                    'max_price'         => $product['price'] ?? 0,
-                    'regular_max_price' => $product['price'] ?? 0,
+                    'min_price'         => $minPrice,
+                    'regular_min_price' => $minPrice,
+                    'max_price'         => $maxPrice,
+                    'regular_max_price' => $maxPrice,
                     'created_at'        => $now,
                     'updated_at'        => $now,
                 ];
