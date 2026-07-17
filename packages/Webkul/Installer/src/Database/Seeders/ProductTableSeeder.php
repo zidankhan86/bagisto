@@ -1336,22 +1336,69 @@ class ProductTableSeeder extends Seeder
     }
 
     /**
+     * Image mapping from product ID to public/img/products filenames.
+     *
+     * @var array
+     */
+    public $imageMapping = [
+        1  => ['1.png'],
+        2  => ['2.jpg'],
+        3  => ['4.jpg'],
+        4  => ['6.jpg'],
+        5  => ['7.jpg'],
+        6  => ['8.jpg'],
+        7  => ['9.jpg', '11.jpg', '13.jpg'],
+        8  => ['15.jpg', '16.jpg'],
+        9  => ['15.jpg', '16.jpg'],
+        10 => ['17.jpg', '19.png'],
+        11 => ['17.jpg', '19.png'],
+    ];
+
+    /**
+     * Tracks image call count per product for sequential assignment.
+     *
+     * @var array
+     */
+    protected $imageCallCount = [];
+
+    /**
+     * Base path for the product images in public directory.
+     */
+    const IMG_PATH = 'public/img/products/';
+
+    /**
      * Store image in storage.
      *
      * @return string|null
      */
     public function productImages($targetPath, $file, $default = null)
     {
-        if (file_exists(base_path(self::BASE_PATH.$file))) {
-            return Storage::putFile($targetPath, new File(base_path(self::BASE_PATH.$file)));
-        }
+        $productNumber = (int) basename($targetPath);
 
-        if (! $default) {
+        $mappedImages = $this->imageMapping[$productNumber] ?? null;
+
+        if (! $mappedImages) {
             return;
         }
 
-        if (file_exists(base_path(self::BASE_PATH.$default))) {
-            return Storage::putFile($targetPath, new File(base_path(self::BASE_PATH.$default)));
+        // Track call count per product to assign images sequentially
+        if (! isset($this->imageCallCount[$productNumber])) {
+            $this->imageCallCount[$productNumber] = 0;
         }
+
+        $imageIndex = $this->imageCallCount[$productNumber];
+        $this->imageCallCount[$productNumber]++;
+
+        // Ensure we don't exceed available images for this product
+        $imageIndex = min($imageIndex, count($mappedImages) - 1);
+        $imageFile = $mappedImages[$imageIndex];
+
+        $imagePath = base_path(self::IMG_PATH . $imageFile);
+
+        if (file_exists($imagePath)) {
+            return Storage::putFile($targetPath, new File($imagePath));
+        }
+
+        return;
     }
 }

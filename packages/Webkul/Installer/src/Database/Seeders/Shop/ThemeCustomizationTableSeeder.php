@@ -345,12 +345,46 @@ class ThemeCustomizationTableSeeder extends Seeder
     }
 
     /**
+     * Hero images mapping from slide index to public/img/hero filenames.
+     *
+     * @var array
+     */
+    const HERO_IMAGE_PATH = 'public/img/hero/';
+
+    /**
+     * Hero images available for the carousel.
+     *
+     * @var array
+     */
+    public $heroImages = ['hero1.jpg', 'hero2.jpg'];
+
+    /**
      * Store image in storage.
      *
      * @return void
      */
     public function storeFileIfExists($targetPath, $file, $default = null)
     {
+        // For image carousel (theme/1), use hero images from public/img/hero/
+        if ($targetPath === 'theme/1') {
+            static $heroIndex = [];
+            
+            if (! isset($heroIndex[$targetPath])) {
+                $heroIndex[$targetPath] = 0;
+            }
+
+            $heroFile = $this->heroImages[$heroIndex[$targetPath] % count($this->heroImages)];
+            $heroIndex[$targetPath]++;
+            
+            $heroPath = base_path(self::HERO_IMAGE_PATH . $heroFile);
+
+            if (file_exists($heroPath)) {
+                return 'storage/' . Storage::putFile($targetPath, new File($heroPath));
+            }
+
+            return;
+        }
+
         if (file_exists(base_path(self::BASE_PATH.$file))) {
             return 'storage/'.Storage::putFile($targetPath, new File(base_path(self::BASE_PATH.$file)));
         }

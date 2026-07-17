@@ -781,7 +781,7 @@ return [
             'arabic'                   => 'Arapça',
             'back'                     => 'Geri',
             'bagisto'                  => 'Bagisto',
-            'bagisto-info'             => 'Webkul tarafından geliştirilen bir Topluluk Projesi',
+            'bagisto-info'             => 'Bir Topluluk Projesi',
             'bagisto-logo'             => 'Bagisto Logosu',
             'bengali'                  => 'Bengalce',
             'chinese'                  => 'Çince',

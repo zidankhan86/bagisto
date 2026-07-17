@@ -31,8 +31,22 @@ class ProductImage
         $images = [];
 
         foreach ($product->images as $image) {
-            if (! Storage::has($image->path)) {
+            // Skip if path is empty
+            if (empty($image->path)) {
                 continue;
+            }
+
+            // For public/uploads/products paths, check if file exists in public directory
+            if (str_starts_with($image->path, 'public/uploads/products/')) {
+                $publicPath = public_path(str_replace('public/', '', $image->path));
+                if (! file_exists($publicPath)) {
+                    continue;
+                }
+            } else {
+                // For storage paths, check using Storage facade
+                if (! Storage::has($image->path)) {
+                    continue;
+                }
             }
 
             $images[] = $this->getCachedImageUrls($image->path);
@@ -120,6 +134,19 @@ class ProductImage
      */
     private function getCachedImageUrls($path): array
     {
+        // If path starts with 'public/uploads/products/', use direct URL
+        if (str_starts_with($path, 'public/uploads/products/')) {
+            $filename = basename($path);
+            $url = url('uploads/products/' . $filename);
+            
+            return [
+                'small_image_url'    => $url,
+                'medium_image_url'   => $url,
+                'large_image_url'    => $url,
+                'original_image_url' => $url,
+            ];
+        }
+
         if (! $this->isDriverLocal()) {
             return [
                 'small_image_url'    => Storage::url($path),

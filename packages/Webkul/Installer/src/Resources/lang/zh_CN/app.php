@@ -781,7 +781,7 @@ return [
             'arabic'                   => '阿拉伯语',
             'back'                     => '返回',
             'bagisto'                  => 'Bagisto',
-            'bagisto-info'             => '由 Webkul 社区共同开发的项目',
+            'bagisto-info'             => '社区共同开发的项目',
             'bagisto-logo'             => 'Bagisto Logo',
             'bengali'                  => '孟加拉语',
             'chinese'                  => '中文',

@@ -781,7 +781,7 @@ return [
             'arabic'                   => 'Арабська',
             'back'                     => 'Назад',
             'bagisto'                  => 'Bagisto',
-            'bagisto-info'             => 'Спільний проект спільноти від Webkul',
+            'bagisto-info'             => 'Спільний проект спільноти',
             'bagisto-logo'             => 'Логотип Bagisto',
             'bengali'                  => 'Бенгальська',
             'chinese'                  => 'Китайська',
