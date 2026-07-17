@@ -35,6 +35,8 @@ class Channel extends TranslatableModel implements ChannelContract
         'is_maintenance_on',
         'maintenance_mode_text',
         'allowed_ips',
+        'logo',
+        'favicon',
     ];
 
     /**

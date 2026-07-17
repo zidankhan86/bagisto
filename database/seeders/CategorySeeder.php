@@ -20,7 +20,56 @@ class CategorySeeder extends Seeder
 
         $now = Carbon::now();
 
-        // Insert root category
+        $imageDir = public_path('img/category');
+
+        // Supported extensions in public/img/category (your files may be .png / .pnj / .webp)
+        $imageFilesPnj = glob($imageDir . '/*.pnj') ?: [];
+        $imageFilesWebp = glob($imageDir . '/*.webp') ?: [];
+        $imageFilesPng  = glob($imageDir . '/*.png') ?: [];
+
+        $imageFiles = array_merge($imageFilesPnj, $imageFilesWebp, $imageFilesPng);
+
+        $images = array_map(static function ($path) {
+            return basename($path);
+        }, $imageFiles);
+
+        // Shuffle so each seed generates different mapping.
+        shuffle($images);
+
+        // Category set: 1 root + 6 main + 12 sub (randomly assign images)
+        $main = [
+            2 => ['name' => 'Electronics', 'slug' => 'electronics'],
+            3 => ['name' => 'Clothing', 'slug' => 'clothing'],
+            4 => ['name' => 'Home & Garden', 'slug' => 'home-garden'],
+            8 => ['name' => 'Sports & Outdoors', 'slug' => 'sports-outdoors'],
+            9 => ['name' => 'Beauty & Health', 'slug' => 'beauty-health'],
+            10 => ['name' => 'Automotive', 'slug' => 'automotive'],
+        ];
+
+        // 12 sub categories: 2 for each main (keeps carousel populated and realistic)
+        $sub = [
+            5  => ['parent_id' => 2,  'name' => 'Mobile Phones',        'slug' => 'mobile-phones'],
+            6  => ['parent_id' => 2,  'name' => 'Laptops & Tablets',    'slug' => 'laptops-tablets'],
+
+            7  => ['parent_id' => 3,  'name' => "Men's Fashion",        'slug' => 'mens-fashion'],
+            11 => ['parent_id' => 3,  'name' => "Women\u2019s Fashion",   'slug' => 'womens-fashion'],
+
+            12 => ['parent_id' => 4,  'name' => 'Furniture',             'slug' => 'furniture'],
+            13 => ['parent_id' => 4,  'name' => 'Kitchen Essentials',   'slug' => 'kitchen-essentials'],
+
+            14 => ['parent_id' => 8,  'name' => 'Fitness Equipment',    'slug' => 'fitness-equipment'],
+            15 => ['parent_id' => 8,  'name' => 'Camping & Hiking',     'slug' => 'camping-hiking'],
+
+            16 => ['parent_id' => 9,  'name' => 'Skincare',             'slug' => 'skincare'],
+            17 => ['parent_id' => 9,  'name' => 'Personal Care',        'slug' => 'personal-care'],
+
+            18 => ['parent_id' => 10, 'name' => 'Car Accessories',      'slug' => 'car-accessories'],
+            19 => ['parent_id' => 10, 'name' => 'Motor Oil & Fluids',  'slug' => 'motor-oil-fluids'],
+        ];
+
+        // ---- Nested set bookkeeping ----
+        // Root gets lft=1, rgt = 2 * nodes_count - 1
+        // With 1 root + 6 main + 12 sub = 19 nodes => root _rgt=38
         DB::table('categories')->insert([
             [
                 'id'          => 1,
@@ -28,7 +77,7 @@ class CategorySeeder extends Seeder
                 'logo_path'   => null,
                 'status'      => 1,
                 '_lft'        => 1,
-                '_rgt'        => 14,
+                '_rgt'        => 38,
                 'parent_id'   => null,
                 'banner_path' => null,
                 'created_at'  => $now,
@@ -36,207 +85,155 @@ class CategorySeeder extends Seeder
             ],
         ]);
 
-        // Insert main categories (level 1)
-        DB::table('categories')->insert([
-            [
-                'id'            => 2,
-                'position'      => 1,
-                'logo_path'     => null,
-                'status'        => 1,
-                'display_mode'  => 'products_and_description',
-                '_lft'          => 2,
-                '_rgt'          => 5,
-                'parent_id'     => 1,
-                'additional'    => null,
-                'banner_path'   => null,
-                'created_at'    => $now,
-                'updated_at'    => $now,
-            ],
-            [
-                'id'            => 3,
-                'position'      => 2,
-                'logo_path'     => null,
-                'status'        => 1,
-                'display_mode'  => 'products_and_description',
-                '_lft'          => 6,
-                '_rgt'          => 9,
-                'parent_id'     => 1,
-                'additional'    => null,
-                'banner_path'   => null,
-                'created_at'    => $now,
-                'updated_at'    => $now,
-            ],
-            [
-                'id'            => 4,
-                'position'      => 3,
-                'logo_path'     => null,
-                'status'        => 1,
-                'display_mode'  => 'products_and_description',
-                '_lft'          => 10,
-                '_rgt'          => 13,
-                'parent_id'     => 1,
-                'additional'    => null,
-                'banner_path'   => null,
-                'created_at'    => $now,
-                'updated_at'    => $now,
-            ],
-        ]);
+        // Precomputed _lft/_rgt per main with 2 sub nodes each:
+        // Main i gets interval size 6: main + 2 sub => (main opens) + sub(2 each) => 6 positions
+        // Sequence: main1:(2..7), main2:(8..13), main3:(14..19), main4:(20..25), main5:(26..31), main6:(32..37)
+        $mainIntervals = [
+            2  => ['lft' => 2,  'rgt' => 7],
+            3  => ['lft' => 8,  'rgt' => 13],
+            4  => ['lft' => 14, 'rgt' => 19],
+            8  => ['lft' => 20, 'rgt' => 25],
+            9  => ['lft' => 26, 'rgt' => 31],
+            10 => ['lft' => 32, 'rgt' => 37],
+        ];
 
-        // Insert sub-categories (level 2)
-        DB::table('categories')->insert([
-            [
-                'id'            => 5,
-                'position'      => 1,
-                'logo_path'     => null,
-                'status'        => 1,
-                'display_mode'  => 'products_and_description',
-                '_lft'          => 3,
-                '_rgt'          => 4,
-                'parent_id'     => 2,
-                'additional'    => null,
-                'banner_path'   => null,
-                'created_at'    => $now,
-                'updated_at'    => $now,
-            ],
-            [
-                'id'            => 6,
-                'position'      => 2,
-                'logo_path'     => null,
-                'status'        => 1,
-                'display_mode'  => 'products_and_description',
-                '_lft'          => 7,
-                '_rgt'          => 8,
-                'parent_id'     => 3,
-                'additional'    => null,
-                'banner_path'   => null,
-                'created_at'    => $now,
-                'updated_at'    => $now,
-            ],
-            [
-                'id'            => 7,
-                'position'      => 3,
-                'logo_path'     => null,
-                'status'        => 1,
-                'display_mode'  => 'products_and_description',
-                '_lft'          => 11,
-                '_rgt'          => 12,
-                'parent_id'     => 4,
-                'additional'    => null,
-                'banner_path'   => null,
-                'created_at'    => $now,
-                'updated_at'    => $now,
-            ],
-        ]);
+        $subIntervals = [
+            5  => ['lft' => 3,  'rgt' => 4],
+            6  => ['lft' => 5,  'rgt' => 6],
 
-        // Insert category translations
-        DB::table('category_translations')->insert([
-            // Root category
-            [
-                'category_id'      => 1,
-                'name'             => 'Root',
-                'slug'             => 'root',
-                'url_path'         => 'root',
-                'description'      => 'Root Category',
-                'meta_title'       => 'Root',
-                'meta_description' => 'Root Category',
-                'meta_keywords'    => 'root',
+            7  => ['lft' => 9,  'rgt' => 10],
+            11 => ['lft' => 11, 'rgt' => 12],
+
+            12 => ['lft' => 15, 'rgt' => 16],
+            13 => ['lft' => 17, 'rgt' => 18],
+
+            14 => ['lft' => 21, 'rgt' => 22],
+            15 => ['lft' => 23, 'rgt' => 24],
+
+            16 => ['lft' => 27, 'rgt' => 28],
+            17 => ['lft' => 29, 'rgt' => 30],
+
+            18 => ['lft' => 33, 'rgt' => 34],
+            19 => ['lft' => 35, 'rgt' => 36],
+        ];
+
+        // Assign images: repeat if fewer than categories.
+        $assignImagePath = static function () use (&$images) {
+            if (empty($images)) {
+                return null;
+            }
+            static $i = 0;
+            $file = $images[$i % count($images)];
+            $i++;
+
+            // Bagisto uses `logo_path` as a stored path. We’ll store a path relative to `public/`.
+            return 'img/category/' . $file;
+        };
+
+        // Insert main categories
+        foreach ($main as $id => $data) {
+            $interval = $mainIntervals[$id];
+
+            DB::table('categories')->insert([
+                [
+                    'id'           => $id,
+                    'position'     => (int) array_search($id, array_keys($main), true) + 1,
+                    'logo_path'    => $assignImagePath(),
+                    'status'       => 1,
+                    'display_mode' => 'products_and_description',
+                    '_lft'         => $interval['lft'],
+                    '_rgt'         => $interval['rgt'],
+                    'parent_id'    => 1,
+                    'additional'   => null,
+                    'banner_path'  => null,
+                    'created_at'   => $now,
+                    'updated_at'   => $now,
+                ],
+            ]);
+        }
+
+        // Insert sub categories
+        foreach ($sub as $id => $data) {
+            $interval = $subIntervals[$id];
+
+            DB::table('categories')->insert([
+                [
+                    'id'           => $id,
+                    'position'     => (int) array_search($id, array_keys($sub), true) + 1,
+                    'logo_path'    => $assignImagePath(),
+                    'status'       => 1,
+                    'display_mode' => 'products_and_description',
+                    '_lft'         => $interval['lft'],
+                    '_rgt'         => $interval['rgt'],
+                    'parent_id'    => $data['parent_id'],
+                    'additional'   => null,
+                    'banner_path'  => null,
+                    'created_at'   => $now,
+                    'updated_at'   => $now,
+                ],
+            ]);
+        }
+
+        // Insert translations (en)
+        $translations = [];
+        $translations[] = [
+            'category_id'      => 1,
+            'name'             => 'Root',
+            'slug'             => 'root',
+            'url_path'         => 'root',
+            'description'      => 'Root Category',
+            'meta_title'       => 'Root',
+            'meta_description' => 'Root Category',
+            'meta_keywords'    => 'root',
+            'locale_id'        => null,
+            'locale'           => 'en',
+        ];
+
+        foreach ($main as $id => $data) {
+            $translations[] = [
+                'category_id'      => $id,
+                'name'             => $data['name'],
+                'slug'             => $data['slug'],
+                'url_path'         => $data['slug'],
+                'description'      => $data['name'] . ' Category',
+                'meta_title'       => $data['name'],
+                'meta_description' => 'Shop ' . $data['name'],
+                'meta_keywords'    => $data['slug'],
                 'locale_id'        => null,
                 'locale'           => 'en',
-            ],
-            // Main categories
-            [
-                'category_id'      => 2,
-                'name'             => 'Electronics',
-                'slug'             => 'electronics',
-                'url_path'         => 'electronics',
-                'description'      => 'Electronic devices and accessories',
-                'meta_title'       => 'Electronics',
-                'meta_description' => 'Shop the latest electronics',
-                'meta_keywords'    => 'electronics, gadgets, devices',
+            ];
+        }
+
+        foreach ($sub as $id => $data) {
+            $parentSlug = $main[$data['parent_id']]['slug'];
+            $urlPath = $parentSlug . '/' . $data['slug'];
+
+            $translations[] = [
+                'category_id'      => $id,
+                'name'             => $data['name'],
+                'slug'             => $data['slug'],
+                'url_path'         => $urlPath,
+                'description'      => $data['name'] . ' Category',
+                'meta_title'       => $data['name'],
+                'meta_description' => 'Shop ' . $data['name'],
+                'meta_keywords'    => $data['slug'],
                 'locale_id'        => null,
                 'locale'           => 'en',
-            ],
-            [
-                'category_id'      => 3,
-                'name'             => 'Clothing',
-                'slug'             => 'clothing',
-                'url_path'         => 'clothing',
-                'description'      => 'Fashion and apparel for all',
-                'meta_title'       => 'Clothing',
-                'meta_description' => 'Trendy clothing collection',
-                'meta_keywords'    => 'clothing, fashion, apparel',
-                'locale_id'        => null,
-                'locale'           => 'en',
-            ],
-            [
-                'category_id'      => 4,
-                'name'             => 'Home & Garden',
-                'slug'             => 'home-garden',
-                'url_path'         => 'home-garden',
-                'description'      => 'Home improvement and garden supplies',
-                'meta_title'       => 'Home & Garden',
-                'meta_description' => 'Everything for your home and garden',
-                'meta_keywords'    => 'home, garden, furniture',
-                'locale_id'        => null,
-                'locale'           => 'en',
-            ],
-            // Sub-categories
-            [
-                'category_id'      => 5,
-                'name'             => 'Mobile Phones',
-                'slug'             => 'mobile-phones',
-                'url_path'         => 'electronics/mobile-phones',
-                'description'      => 'Smartphones and accessories',
-                'meta_title'       => 'Mobile Phones',
-                'meta_description' => 'Latest smartphones',
-                'meta_keywords'    => 'mobile, phones, smartphones',
-                'locale_id'        => null,
-                'locale'           => 'en',
-            ],
-            [
-                'category_id'      => 6,
-                'name'             => 'Men\'s Fashion',
-                'slug'             => 'mens-fashion',
-                'url_path'         => 'clothing/mens-fashion',
-                'description'      => 'Men\'s clothing and accessories',
-                'meta_title'       => 'Men\'s Fashion',
-                'meta_description' => 'Men\'s fashion collection',
-                'meta_keywords'    => 'men, fashion, clothing',
-                'locale_id'        => null,
-                'locale'           => 'en',
-            ],
-            [
-                'category_id'      => 7,
-                'name'             => 'Furniture',
-                'slug'             => 'furniture',
-                'url_path'         => 'home-garden/furniture',
-                'description'      => 'Home furniture and decor',
-                'meta_title'       => 'Furniture',
-                'meta_description' => 'Quality home furniture',
-                'meta_keywords'    => 'furniture, home, decor',
-                'locale_id'        => null,
-                'locale'           => 'en',
-            ],
-        ]);
+            ];
+        }
+
+        DB::table('category_translations')->insert($translations);
 
         // Insert category filterable attributes
-        DB::table('category_filterable_attributes')->insert([
-            ['category_id' => 2, 'attribute_id' => 11], // price
-            ['category_id' => 2, 'attribute_id' => 23], // color
-            ['category_id' => 2, 'attribute_id' => 24], // size
-            ['category_id' => 2, 'attribute_id' => 25], // brand
-            ['category_id' => 3, 'attribute_id' => 11],
-            ['category_id' => 3, 'attribute_id' => 23],
-            ['category_id' => 3, 'attribute_id' => 24],
-            ['category_id' => 3, 'attribute_id' => 25],
-            ['category_id' => 4, 'attribute_id' => 11],
-            ['category_id' => 4, 'attribute_id' => 25],
-            ['category_id' => 5, 'attribute_id' => 11],
-            ['category_id' => 5, 'attribute_id' => 25],
-            ['category_id' => 6, 'attribute_id' => 11],
-            ['category_id' => 6, 'attribute_id' => 23],
-            ['category_id' => 6, 'attribute_id' => 24],
-            ['category_id' => 7, 'attribute_id' => 11],
-        ]);
+        // Use a simple pattern: apply basic filterable attributes to main categories.
+        $filterable = [11, 23, 24, 25]; // price,color,size,brand
+        $rows = [];
+        foreach (array_keys($main) as $catId) {
+            foreach ($filterable as $attributeId) {
+                $rows[] = ['category_id' => $catId, 'attribute_id' => $attributeId];
+            }
+        }
+        DB::table('category_filterable_attributes')->insert($rows);
     }
 }
+
