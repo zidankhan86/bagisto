@@ -8,7 +8,7 @@ return [
             'bagisto'              => 'Bagisto',
             'email'                => 'E-mail',
             'email-not-exist'      => 'Nous ne pouvons pas trouver d\'utilisateur avec cette adresse e-mail',
-            'footer'               => '© Droits d’auteur 2010 - :current_year, Webkul Software (enregistré en Inde). Tous droits réservés.',
+            'footer'               => '© Droits d’auteur :current_year. Tous droits réservés.',
             'forgot-password-text' => 'Si vous avez oublié votre mot de passe, récupérez-le en entrant votre adresse e-mail.',
             'page-title'           => 'Vous avez oublié votre mot de passe ?',
             'reset-link-sent'      => 'Nous vous avons envoyé par e-mail le lien de réinitialisation de votre mot de passe.',

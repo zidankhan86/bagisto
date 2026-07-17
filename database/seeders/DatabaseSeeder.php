@@ -15,5 +15,10 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(BagistoDatabaseSeeder::class);
+
+        // Seed custom categories, products, and inventory
+        $this->call(CategorySeeder::class);
+        $this->call(ProductSeeder::class);
+        $this->call(InventorySeeder::class);
     }
 }

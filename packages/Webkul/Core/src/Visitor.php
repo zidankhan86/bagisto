@@ -17,8 +17,6 @@ class Visitor extends BaseVisitor
     {
         foreach ($this->except as $path) {
             if ($this->request->is($path)) {
-                dd(1);
-
                 return;
             }
         }
