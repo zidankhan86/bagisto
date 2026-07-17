@@ -139,6 +139,10 @@ class ProductDataGrid extends DataGrid
                     return;
                 }
 
+                if (str_starts_with($row->base_image, 'public/uploads/products/')) {
+                    return url(str_replace('public/', '', $row->base_image));
+                }
+
                 return Storage::url($row->base_image);
             },
         ]);

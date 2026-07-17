@@ -51,6 +51,10 @@ class ProductImage extends Model implements ProductImageContract
      */
     public function url()
     {
+        if (str_starts_with($this->path, 'public/uploads/products/')) {
+            return url(str_replace('public/', '', $this->path));
+        }
+
         return Storage::url($this->path);
     }
 
